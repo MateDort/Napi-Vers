@@ -32,7 +32,7 @@
       "softwareKeyboardLayoutMode": "pan",
       "navigationBar": {
         "visible": true,
-        "barStyle": "light-content",
+        "barStyle": "dark-content",
         "backgroundColor": "#F5DEB3"
       }
     },

@@ -11,10 +11,12 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { hungarianPoems } from './hungarianPoems';
+import * as NavigationBar from 'expo-navigation-bar';
 
 const OPENAI_API_KEY = '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';
 const SERPER_API_KEY = '4c05eab623aba7e8c8eede5ea9d34ea8a3a128d3';
@@ -39,6 +41,12 @@ export default function App() {
 
   useEffect(() => {
     loadTodaysPoem();
+    
+    // Set Android navigation bar color to butter
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync('#F5DEB3');
+      NavigationBar.setButtonStyleAsync('dark');
+    }
     
     // Check for midnight and update poem
     const interval = setInterval(() => {
@@ -83,13 +91,14 @@ export default function App() {
       const dayOfWeek = today.toLocaleString('hu-HU', { weekday: 'long' });
       
       // Use Serper to find relevant historical events, author birthdays, etc.
+      const monthName = today.toLocaleString('hu-HU', { month: 'long' });
       const serperResponse = await axios.post(
         'https://google.serper.dev/search',
         {
-          q: `magyar költő születésnap ${today.getMonth() + 1} ${today.getDate()} OR magyar vers írva ${today.getMonth() + 1} ${today.getDate()} történelmi esemény`,
+          q: `${monthName} ${today.getDate()} magyar költő születésnap halálozás évforduló történelmi esemény nemzeti ünnep`,
           gl: 'hu',
           hl: 'hu',
-          num: 5
+          num: 8
         },
         {
           headers: {
@@ -112,18 +121,25 @@ export default function App() {
           messages: [
             {
               role: 'system',
-              content: `Te egy magyar irodalmi szakértő vagy. A feladatod, hogy minden nap kiválaszd a legmegfelelőbb verset a következő listából, figyelembe véve a mai dátumot, történelmi eseményeket, költők születésnapját, vagy bármilyen releváns kapcsolatot.
+              content: `Te egy magyar irodalmi szakértő vagy. A feladatod, hogy minden nap kiválaszd a legmegfelelőbb verset a következő listából.
 
-Elérhető versek: ${availablePoems}
+⚠️ KRITIKUS: CSAK az alábbi versek közül válaszd ki AZ EGYIKET - nem találhatsz ki új verset!
 
-Ha találsz kapcsolatot a mai nappal (pl. a költő ma született, a vers ma íródott, vagy releváns történelmi esemény), válaszd azt. Ha nincs különleges kapcsolat, válassz egy szép, jelentőségteljes verset.
+ELÉRHETŐ VERSEK:
+${availablePoems}
 
-Válaszolj CSAK JSON formátumban:
-{
-  "title": "vers címe",
-  "author": "költő neve",
-  "reason": "1-2 mondatban miért ezt a verset választottad ma"
-}`
+PRIORITÁSI SORREND:
+1. Ha ma költő születésnapja vagy halálozása → MINDIG azt a költőt válaszd (a fenti listából)
+2. Ha ma történelmi ünnep (március 15, október 23) → válaszd a kapcsolódó verset (pl. "Nemzeti dal")
+3. Ha szezonális kapcsolat van → válaszd a tematikusan illő verset
+4. Ha normál nap → válassz egy szép, jelentős verset rotálva
+
+INDOKLÁS SZABÁLYOK:
+- Pontosan 50-150 karakter hosszú legyen (számolj karaktereket!)
+- Példa jó hosszúság: "Ma Petőfi születésnapja, aki hőse volt a forradalomnak."
+
+VÁLASZ FORMÁTUM (CSAK JSON):
+{"title": "pontos vers címe a listából", "author": "pontos költő neve", "reason": "50-150 karakter indoklás"}`
             },
             {
               role: 'user',
@@ -132,12 +148,11 @@ Válaszolj CSAK JSON formátumban:
 Releváns információk a mai napról:
 ${searchResults}
 
-Melyik verset válaszd ki ma és miért?`
+Melyik verset válaszd ki ma és miért? Válaszolj JSON formátumban.`
             }
           ],
-          temperature: 0.8,
-          max_tokens: 300,
-          response_format: { type: "json_object" }
+          temperature: 0.7,
+          max_tokens: 400
         },
         {
           headers: {
@@ -165,21 +180,76 @@ Melyik verset válaszd ki ma és miért?`
         await AsyncStorage.setItem('poemDate', getTodayDateString());
         await AsyncStorage.setItem('poemReason', selection.reason);
       } else {
-        // Fallback to random if GPT selection doesn't match
-        const randomIndex = Math.floor(Math.random() * hungarianPoems.length);
-        const fallbackPoem = hungarianPoems[randomIndex];
-        fallbackPoem.dailyReason = 'Mai napi vers';
-        setCurrentPoem(fallbackPoem);
-        await AsyncStorage.setItem('poemIndex', randomIndex.toString());
-        await AsyncStorage.setItem('poemDate', getTodayDateString());
+        // GPT selected a poem not in collection - retry with stronger prompt
+        console.warn('GPT selected invalid poem, retrying...');
+        throw new Error('Invalid poem selection, retrying');
       }
     } catch (error) {
       console.error('Error selecting poem:', error);
-      // Fallback to random selection
-      const randomIndex = Math.floor(Math.random() * hungarianPoems.length);
-      setCurrentPoem(hungarianPoems[randomIndex]);
-      await AsyncStorage.setItem('poemIndex', randomIndex.toString());
-      await AsyncStorage.setItem('poemDate', getTodayDateString());
+      
+      // Retry once with simpler prompt (no random fallback!)
+      try {
+        console.log('Retrying poem selection...');
+        
+        const retryResponse = await axios.post(
+          'https://api.openai.com/v1/chat/completions',
+          {
+            model: 'gpt-4',
+            messages: [
+              {
+                role: 'system',
+                content: `Te egy magyar irodalmi szakértő vagy.
+                
+FELADAT: Válassz EGY verset a következő listából: ${availablePoems}
+
+⚠️ KRITIKUS: A "title" és "author" mezőket PONTOSAN a fenti listából másold! NE találj ki új címet!
+
+Válaszd a legmegfelelőbb verset a mai napra: ${dateString}
+
+JSON válasz:
+{"title": "pontos cím a listából", "author": "pontos név", "reason": "50-150 karakter indoklás"}`
+              },
+              {
+                role: 'user',
+                content: `Válassz egy verset a mai napra. JSON formátumban válaszolj.`
+              }
+            ],
+            temperature: 0.5,
+            max_tokens: 400
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const retrySelection = JSON.parse(retryResponse.data.choices[0].message.content);
+        const retryPoem = hungarianPoems.find(
+          p => p.title === retrySelection.title && p.author === retrySelection.author
+        );
+
+        if (retryPoem) {
+          retryPoem.dailyReason = retrySelection.reason;
+          setCurrentPoem(retryPoem);
+          const poemIndex = hungarianPoems.indexOf(retryPoem);
+          await AsyncStorage.setItem('poemIndex', poemIndex.toString());
+          await AsyncStorage.setItem('poemDate', getTodayDateString());
+          await AsyncStorage.setItem('poemReason', retrySelection.reason);
+          console.log('Retry successful!');
+        } else {
+          throw new Error('Retry also failed - GPT not selecting from list');
+        }
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+        // Show error to user - no random fallback!
+        Alert.alert(
+          'Hiba',
+          'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.',
+          [{ text: 'Újrapróbálás', onPress: () => selectNewPoem() }]
+        );
+      }
     }
   };
 
@@ -241,7 +311,18 @@ Melyik verset válaszd ki ma és miért?`
             },
             {
               role: 'user',
-              content: `Írj egy érdekes és részletes életrajzot ${currentPoem.author} költőről. Foglald bele a születési és halálozási dátumot, az életének főbb eseményeit, művészi stílusát, és néhány érdekes tényt róla. Itt van néhány információ: ${searchResults}`
+              content: `Írj egy érdekes és részletes életrajzot ${currentPoem.author} költőről.
+
+KÖTELEZŐ elemek (mind szerepeljen):
+1. Születési és halálozási dátum (konkrét dátumok)
+2. Életének főbb eseményei (gyerekkor, tanulmányok, felnőttkor)
+3. Költői stílusa (szimbolizmus, realizmus, modernizmus stb.) - FONTOS!
+4. Legismertebb művei (legalább 2-3 vers címe)
+5. 1-2 érdekes tény vagy anekdota
+
+További információ: ${searchResults}
+
+Írj 2-3 bekezdésben, közérthető magyarsággal.`
             }
           ],
           temperature: 0.7,

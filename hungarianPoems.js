@@ -11,6 +11,14 @@ Mintha szívemből folyt volna tova,
 zavaros, bölcs és nagy volt a Duna.`
   },
   {
+    title: "Születésnapomra",
+    author: "József Attila",
+    text: `Harminckét éves lettem én -
+meglepetés e költemény.
+Harminckét évem elszelelt,
+ez ünnepélyes és komoly.`
+  },
+  {
     title: "Levél",
     author: "Radnóti Miklós",
     text: `Én tudtam, hogy lehull a gally, ha hoz is gyümölcsöt,
@@ -122,5 +130,50 @@ Minden elhalt lassan csendesen.`
 de hiába van karácsony,
 egyedül ülök a szobában
 és búsulok magamban.`
+  },
+  {
+    title: "Egy gondolat bánt engemet",
+    author: "Petőfi Sándor",
+    text: `Egy gondolat bánt engemet:
+Nem, nem az, hogy csalóka képet
+Látok a dicsőség felé vivő úton,
+Mely, ha hozzá közelítünk, szép lassan
+Ködként eloszlik, szétfoszlik.`
+  },
+  {
+    title: "Szabadság, szerelem",
+    author: "Petőfi Sándor",
+    text: `Szabadság, szerelem!
+E kettő kell nekem.
+Szerelmemért föláldozom
+Az életet,
+Szabadságért föláldozom
+Szerelmemet.`
+  },
+  {
+    title: "Őrizem a szemed",
+    author: "Radnóti Miklós",
+    text: `Őrizem a szemed csillagát is én,
+mint megannyi más szerencse-jelt e jelt is,
+őrzöm ezt is, s az lesz, lásd, a sírban is,
+hogy szemem csillagát őrzöm, ha nem lelsz.`
+  },
+  {
+    title: "Nem tudhatom",
+    author: "Radnóti Miklós",
+    text: `Nem tudhatom, hogy másnak e tájék mit jelent,
+nekem szülőhazám itt e lángoktól ölelt
+kis ország, messzeringó gyerekkorom világa.`
+  },
+  {
+    title: "A magyar ugaron",
+    author: "Ady Endre",
+    text: `Óh, magyar ugaron
+termett jelenvalók,
+Kicsoda a ti atyátok?
+Fél népség a hazában,
+Árva vagy, vagy mostoha fiók,
+S a lelkek kiáltása,
+Válasz alig valók.`
   }
 ];
