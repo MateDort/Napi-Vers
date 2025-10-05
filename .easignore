@@ -1,0 +1,22 @@
+# Ignore parent directory files
+../*
+
+# Ignore system files
+Library/
+*.app
+.Trash/
+Desktop/
+Documents/
+Downloads/
+
+# Only include the project directory
+!node_modules/
+!assets/
+!App.js
+!app.json
+!babel.config.js
+!package.json
+!package-lock.json
+!hungarianPoems.js
+!eas.json
+!.gitignore

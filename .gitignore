@@ -1,0 +1,26 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
+
+# EAS
+.eas/
+
+# Exclude everything in parent directories
+../*
+Library/
