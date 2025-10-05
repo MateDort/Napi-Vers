@@ -31,6 +31,8 @@
       ],
       "softwareKeyboardLayoutMode": "pan",
       "navigationBar": {
+        "visible": true,
+        "barStyle": "light-content",
         "backgroundColor": "#F5DEB3"
       }
     },

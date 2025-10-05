@@ -465,11 +465,17 @@ Melyik verset válaszd ki ma és miért?`
           setShowAuthorModal(false);
           setShowAuthorChat(false);
         }}
+        statusBarTranslucent={true}
       >
         <KeyboardAvoidingView 
           style={{flex: 1}} 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
+          <StatusBar 
+            barStyle="dark-content" 
+            backgroundColor="#F5DEB3"
+            translucent={true}
+          />
           <View style={styles.modalContainer}>
             <ScrollView style={styles.modalScroll} ref={scrollViewRef}>
               <Text style={styles.modalTitle}>{currentPoem.author}</Text>
@@ -556,11 +562,17 @@ Melyik verset válaszd ki ma és miért?`
           setShowPoemModal(false);
           setShowPoemChat(false);
         }}
+        statusBarTranslucent={true}
       >
         <KeyboardAvoidingView 
           style={{flex: 1}} 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
+          <StatusBar 
+            barStyle="dark-content" 
+            backgroundColor="#F5DEB3"
+            translucent={true}
+          />
           <View style={styles.modalContainer}>
             <ScrollView style={styles.modalScroll} ref={scrollViewRef}>
               <Text style={styles.modalTitle}>"{currentPoem.title}"</Text>
@@ -732,8 +744,8 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#F5DEB3',
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'android' ? 50 : 60,
+    paddingBottom: Platform.OS === 'android' ? 50 : 20,
     paddingHorizontal: 20,
   },
   modalScroll: {
@@ -757,6 +769,7 @@ const styles = StyleSheet.create({
   },
   modalButtonRow: {
     marginTop: 10,
+    marginBottom: Platform.OS === 'android' ? 20 : 0,
   },
   closeButton: {
     backgroundColor: '#000',
@@ -772,7 +785,7 @@ const styles = StyleSheet.create({
   chatFloatingButton: {
     position: 'absolute',
     right: 20,
-    bottom: 90,
+    bottom: Platform.OS === 'android' ? 110 : 90,
     width: 60,
     height: 60,
     borderRadius: 30,
