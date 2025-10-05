@@ -28,7 +28,11 @@
       "versionCode": 1,
       "permissions": [
         "INTERNET"
-      ]
+      ],
+      "softwareKeyboardLayoutMode": "pan",
+      "navigationBar": {
+        "backgroundColor": "#F5DEB3"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

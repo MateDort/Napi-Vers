@@ -58,12 +58,15 @@ export default function App() {
       const todayDate = getTodayDateString();
       const storedDate = await AsyncStorage.getItem('poemDate');
       const storedPoemIndex = await AsyncStorage.getItem('poemIndex');
+      const storedReason = await AsyncStorage.getItem('poemReason');
 
       if (storedDate === todayDate && storedPoemIndex !== null) {
         // Use stored poem for today
-        setCurrentPoem(hungarianPoems[parseInt(storedPoemIndex)]);
+        const poem = hungarianPoems[parseInt(storedPoemIndex)];
+        poem.dailyReason = storedReason || '';
+        setCurrentPoem(poem);
       } else {
-        // Select new random poem
+        // Select new poem with GPT
         selectNewPoem();
       }
     } catch (error) {
@@ -73,14 +76,110 @@ export default function App() {
   };
 
   const selectNewPoem = async () => {
-    const randomIndex = Math.floor(Math.random() * hungarianPoems.length);
-    setCurrentPoem(hungarianPoems[randomIndex]);
-    
     try {
+      // Get today's date information
+      const today = new Date();
+      const dateString = `${today.getFullYear()}. ${today.toLocaleString('hu-HU', { month: 'long' })} ${today.getDate()}.`;
+      const dayOfWeek = today.toLocaleString('hu-HU', { weekday: 'long' });
+      
+      // Use Serper to find relevant historical events, author birthdays, etc.
+      const serperResponse = await axios.post(
+        'https://google.serper.dev/search',
+        {
+          q: `magyar költő születésnap ${today.getMonth() + 1} ${today.getDate()} OR magyar vers írva ${today.getMonth() + 1} ${today.getDate()} történelmi esemény`,
+          gl: 'hu',
+          hl: 'hu',
+          num: 5
+        },
+        {
+          headers: {
+            'X-API-KEY': SERPER_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const searchResults = serperResponse.data.organic?.slice(0, 5).map(r => r.snippet).join('\n') || 'Nincs különleges esemény ma.';
+
+      // Get available poems list
+      const availablePoems = hungarianPoems.map(p => `"${p.title}" - ${p.author}`).join(', ');
+
+      // Ask GPT to choose the most relevant poem
+      const gptResponse = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: `Te egy magyar irodalmi szakértő vagy. A feladatod, hogy minden nap kiválaszd a legmegfelelőbb verset a következő listából, figyelembe véve a mai dátumot, történelmi eseményeket, költők születésnapját, vagy bármilyen releváns kapcsolatot.
+
+Elérhető versek: ${availablePoems}
+
+Ha találsz kapcsolatot a mai nappal (pl. a költő ma született, a vers ma íródott, vagy releváns történelmi esemény), válaszd azt. Ha nincs különleges kapcsolat, válassz egy szép, jelentőségteljes verset.
+
+Válaszolj CSAK JSON formátumban:
+{
+  "title": "vers címe",
+  "author": "költő neve",
+  "reason": "1-2 mondatban miért ezt a verset választottad ma"
+}`
+            },
+            {
+              role: 'user',
+              content: `Mai dátum: ${dateString} (${dayOfWeek})
+
+Releváns információk a mai napról:
+${searchResults}
+
+Melyik verset válaszd ki ma és miért?`
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 300,
+          response_format: { type: "json_object" }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const selection = JSON.parse(gptResponse.data.choices[0].message.content);
+      
+      // Find the selected poem
+      const selectedPoem = hungarianPoems.find(
+        p => p.title === selection.title && p.author === selection.author
+      );
+
+      if (selectedPoem) {
+        // Add the reason to the poem
+        selectedPoem.dailyReason = selection.reason;
+        setCurrentPoem(selectedPoem);
+        
+        // Save selection
+        const poemIndex = hungarianPoems.indexOf(selectedPoem);
+        await AsyncStorage.setItem('poemIndex', poemIndex.toString());
+        await AsyncStorage.setItem('poemDate', getTodayDateString());
+        await AsyncStorage.setItem('poemReason', selection.reason);
+      } else {
+        // Fallback to random if GPT selection doesn't match
+        const randomIndex = Math.floor(Math.random() * hungarianPoems.length);
+        const fallbackPoem = hungarianPoems[randomIndex];
+        fallbackPoem.dailyReason = 'Mai napi vers';
+        setCurrentPoem(fallbackPoem);
+        await AsyncStorage.setItem('poemIndex', randomIndex.toString());
+        await AsyncStorage.setItem('poemDate', getTodayDateString());
+      }
+    } catch (error) {
+      console.error('Error selecting poem:', error);
+      // Fallback to random selection
+      const randomIndex = Math.floor(Math.random() * hungarianPoems.length);
+      setCurrentPoem(hungarianPoems[randomIndex]);
       await AsyncStorage.setItem('poemIndex', randomIndex.toString());
       await AsyncStorage.setItem('poemDate', getTodayDateString());
-    } catch (error) {
-      console.error('Error saving poem:', error);
     }
   };
 
@@ -308,9 +407,18 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="#F5DEB3"
+        translucent={true}
+      />
       
       <View style={styles.poemContainer}>
+        {currentPoem.dailyReason && (
+          <View style={styles.reasonBadge}>
+            <Text style={styles.reasonText}>💡 {currentPoem.dailyReason}</Text>
+          </View>
+        )}
         <Text style={styles.poemText}>
           "{currentPoem.text}"
         </Text>
@@ -539,8 +647,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5DEB3',
     justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: Platform.OS === 'android' ? 50 : 60,
+    paddingBottom: Platform.OS === 'android' ? 20 : 40,
     paddingHorizontal: 20,
   },
   poemContainer: {
@@ -548,6 +656,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
+  },
+  reasonBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginBottom: 20,
+    maxWidth: '90%',
+  },
+  reasonText: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   poemText: {
     fontSize: 40,
@@ -572,6 +694,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     width: '100%',
     paddingHorizontal: 10,
+    marginBottom: Platform.OS === 'android' ? 30 : 0,
   },
   button: {
     backgroundColor: '#000',
