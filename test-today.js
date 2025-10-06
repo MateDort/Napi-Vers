@@ -72,9 +72,10 @@ A feladatod:
 FONTOS KÖLTŐK/ÍRÓK (akik verseket is írtak): 
 Petőfi Sándor, József Attila, Ady Endre, Radnóti Miklós, Arany János, Kosztolányi Dezső, Juhász Gyula, Babits Mihály, Weöres Sándor, Szabó Lőrinc, Dsida Jenő, Reményik Sándor, Szabó Magda, Pilinszky János, Nemes Nagy Ágnes
 
-INDOKLÁS:
-- 50-150 karakter hosszú legyen
-- Példa: "Ma Szabó Magda születésnapja, aki József Attila-díjas író és költő volt."
+INDOKLÁS SZABÁLY:
+- MAXIMUM 120 karakter! (NE írj többet!)
+- Rövid, lényegre törő
+- Példa: "Ma Szabó Magda születésnapja, aki József Attila-díjas író és költő volt." (79 kar)
 
 VÁLASZ FORMÁTUM (CSAK VALID JSON):
 {

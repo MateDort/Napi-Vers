@@ -38,6 +38,7 @@ export default function App() {
   const [authorChatMessages, setAuthorChatMessages] = useState([]);
   const [poemChatMessages, setPoemChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [isSelectingPoem, setIsSelectingPoem] = useState(false);
   const scrollViewRef = useRef();
 
   // Load custom font for Android
@@ -75,19 +76,34 @@ export default function App() {
 
       if (storedDate === todayDate && storedPoemData) {
         // Use stored poem for today
+        console.log('📖 Loading cached poem for today');
         const poem = JSON.parse(storedPoemData);
         setCurrentPoem(poem);
       } else {
         // Select new poem with GPT
-        selectNewPoem();
+        console.log('🔄 Generating new poem for:', todayDate);
+        await selectNewPoem();
       }
     } catch (error) {
       console.error('Error loading poem:', error);
-      selectNewPoem();
+      // Don't retry immediately to avoid rate limits
+      Alert.alert(
+        'Hiba',
+        'Nem sikerült betölteni a verset. Kérlek, próbáld újra később.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const selectNewPoem = async () => {
+    // Prevent multiple simultaneous calls
+    if (isSelectingPoem) {
+      console.log('⏳ Already selecting a poem, skipping...');
+      return;
+    }
+    
+    setIsSelectingPoem(true);
+    
     try {
       // Get today's date information
       const today = new Date();
@@ -143,9 +159,10 @@ A feladatod:
 FONTOS KÖLTŐK/ÍRÓK (akik verseket is írtak): 
 Petőfi Sándor, József Attila, Ady Endre, Radnóti Miklós, Arany János, Kosztolányi Dezső, Juhász Gyula, Babits Mihály, Weöres Sándor, Szabó Lőrinc, Dsida Jenő, Reményik Sándor, Szabó Magda, Pilinszky János, Nemes Nagy Ágnes
 
-INDOKLÁS:
-- 50-150 karakter hosszú legyen
-- Példa: "Ma Szabó Magda születésnapja, aki József Attila-díjas író és költő volt."
+INDOKLÁS SZABÁLY:
+- MAXIMUM 120 karakter! (NE írj többet!)
+- Rövid, lényegre törő
+- Példa: "Ma Szabó Magda születésnapja, aki József Attila-díjas író és költő volt." (79 kar)
 
 VÁLASZ FORMÁTUM (CSAK VALID JSON):
 {
@@ -198,12 +215,18 @@ Válassz egy megfelelő klasszikus magyar verset és írd le a teljes szövegét
     } catch (error) {
       console.error('Error selecting poem:', error);
       
-      // Show error to user
+      // Show error to user with rate limit handling
+      const errorMessage = error.response?.status === 429 
+        ? 'Túl sok kérés. Kérlek, várj néhány másodpercet és próbáld újra.'
+        : 'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.';
+      
       Alert.alert(
         'Hiba',
-        'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.',
-        [{ text: 'Újrapróbálás', onPress: () => selectNewPoem() }]
+        errorMessage,
+        [{ text: 'OK' }]
       );
+    } finally {
+      setIsSelectingPoem(false);
     }
   };
 
@@ -212,7 +235,9 @@ Válassz egy megfelelő klasszikus magyar verset és írd le a teljes szövegét
     const storedDate = await AsyncStorage.getItem('poemDate');
     
     if (storedDate !== todayDate) {
-      selectNewPoem();
+      console.log('🌙 Midnight passed! New day detected. Generating new poem...');
+      console.log('Previous date:', storedDate, '→ Today:', todayDate);
+      await selectNewPoem();
     }
   };
 
