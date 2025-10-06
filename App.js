@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { hungarianPoems } from './hungarianPoems';
+// Removed hardcoded poems - GPT generates from knowledge
 import * as NavigationBar from 'expo-navigation-bar';
+import { useFonts, DancingScript_400Regular } from '@expo-google-fonts/dancing-script';
 
 const OPENAI_API_KEY = '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';
 const SERPER_API_KEY = '4c05eab623aba7e8c8eede5ea9d34ea8a3a128d3';
@@ -38,6 +39,11 @@ export default function App() {
   const [poemChatMessages, setPoemChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
   const scrollViewRef = useRef();
+
+  // Load custom font for Android
+  let [fontsLoaded] = useFonts({
+    DancingScript_400Regular,
+  });
 
   useEffect(() => {
     loadTodaysPoem();
@@ -65,13 +71,11 @@ export default function App() {
     try {
       const todayDate = getTodayDateString();
       const storedDate = await AsyncStorage.getItem('poemDate');
-      const storedPoemIndex = await AsyncStorage.getItem('poemIndex');
-      const storedReason = await AsyncStorage.getItem('poemReason');
+      const storedPoemData = await AsyncStorage.getItem('poemData');
 
-      if (storedDate === todayDate && storedPoemIndex !== null) {
+      if (storedDate === todayDate && storedPoemData) {
         // Use stored poem for today
-        const poem = hungarianPoems[parseInt(storedPoemIndex)];
-        poem.dailyReason = storedReason || '';
+        const poem = JSON.parse(storedPoemData);
         setCurrentPoem(poem);
       } else {
         // Select new poem with GPT
@@ -108,12 +112,9 @@ export default function App() {
         }
       );
 
-      const searchResults = serperResponse.data.organic?.slice(0, 5).map(r => r.snippet).join('\n') || 'Nincs különleges esemény ma.';
+      const searchResults = serperResponse.data.organic?.slice(0, 8).map(r => r.snippet).join('\n') || 'Nincs különleges esemény ma.';
 
-      // Get available poems list
-      const availablePoems = hungarianPoems.map(p => `"${p.title}" - ${p.author}`).join(', ');
-
-      // Ask GPT to choose the most relevant poem
+      // Ask GPT to choose a relevant Hungarian poem from its knowledge and write it out
       const gptResponse = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -121,25 +122,38 @@ export default function App() {
           messages: [
             {
               role: 'system',
-              content: `Te egy magyar irodalmi szakértő vagy. A feladatod, hogy minden nap kiválaszd a legmegfelelőbb verset a következő listából.
+              content: `Te egy magyar irodalmi szakértő vagy és ismersz minden klasszikus magyar verset. 
 
-⚠️ KRITIKUS: CSAK az alábbi versek közül válaszd ki AZ EGYIKET - nem találhatsz ki új verset!
+A feladatod:
+1. Válassz egy VALÓDI, létező klasszikus magyar verset a mai naphoz
+2. Írd le a teljes vers szövegét PONTOSAN (ne találj ki semmit!)
 
-ELÉRHETŐ VERSEK:
-${availablePoems}
+⚠️ KRITIKUS PRIORITÁSI SORREND:
+1. Ha ma KÖLTŐ vagy ÍRÓ születésnapja/halálozása → AKKOR ANNAK A KÖLTŐNEK/ÍRÓNAK válassz egy versét!
+   - Példa: Ha ma Szabó Magda születésnapja → válassz Szabó Magda verset
+   - Példa: Ha ma Weöres Sándor halála → válassz Weöres Sándor verset
+   - NE válassz másik költőt, még ha van is kapcsolat! A születésnapos/elhunyt személy MINDIG PRIORITÁS!
 
-PRIORITÁSI SORREND:
-1. Ha ma költő születésnapja vagy halálozása → MINDIG azt a költőt válaszd (a fenti listából)
-2. Ha ma történelmi ünnep (március 15, október 23) → válaszd a kapcsolódó verset (pl. "Nemzeti dal")
-3. Ha szezonális kapcsolat van → válaszd a tematikusan illő verset
-4. Ha normál nap → válassz egy szép, jelentős verset rotálva
+2. Ha ma történelmi ünnep (március 15, október 23, június 4, augusztus 20) → válassz tematikusan kapcsolódó verset
 
-INDOKLÁS SZABÁLYOK:
-- Pontosan 50-150 karakter hosszú legyen (számolj karaktereket!)
-- Példa jó hosszúság: "Ma Petőfi születésnapja, aki hőse volt a forradalomnak."
+3. Ha szezonális kapcsolat (ősz, tél, karácsony, stb) → válassz tematikus verset
 
-VÁLASZ FORMÁTUM (CSAK JSON):
-{"title": "pontos vers címe a listából", "author": "pontos költő neve", "reason": "50-150 karakter indoklás"}`
+4. Ha normál nap → válassz egy szép, jelentős klasszikus verset
+
+FONTOS KÖLTŐK/ÍRÓK (akik verseket is írtak): 
+Petőfi Sándor, József Attila, Ady Endre, Radnóti Miklós, Arany János, Kosztolányi Dezső, Juhász Gyula, Babits Mihály, Weöres Sándor, Szabó Lőrinc, Dsida Jenő, Reményik Sándor, Szabó Magda, Pilinszky János, Nemes Nagy Ágnes
+
+INDOKLÁS:
+- 50-150 karakter hosszú legyen
+- Példa: "Ma Szabó Magda születésnapja, aki József Attila-díjas író és költő volt."
+
+VÁLASZ FORMÁTUM (CSAK VALID JSON):
+{
+  "title": "Vers címe",
+  "author": "Költő neve",
+  "text": "A teljes vers szövege\\nÚjsor karakterrel\\nminden sortörésre",
+  "reason": "50-150 karakter indoklás"
+}`
             },
             {
               role: 'user',
@@ -148,11 +162,11 @@ VÁLASZ FORMÁTUM (CSAK JSON):
 Releváns információk a mai napról:
 ${searchResults}
 
-Melyik verset válaszd ki ma és miért? Válaszolj JSON formátumban.`
+Válassz egy megfelelő klasszikus magyar verset és írd le a teljes szövegét! Válaszolj CSAK JSON formátumban.`
             }
           ],
           temperature: 0.7,
-          max_tokens: 400
+          max_tokens: 1500
         },
         {
           headers: {
@@ -162,94 +176,34 @@ Melyik verset válaszd ki ma és miért? Válaszolj JSON formátumban.`
         }
       );
 
-      const selection = JSON.parse(gptResponse.data.choices[0].message.content);
+      const poemData = JSON.parse(gptResponse.data.choices[0].message.content);
       
-      // Find the selected poem
-      const selectedPoem = hungarianPoems.find(
-        p => p.title === selection.title && p.author === selection.author
-      );
+      // Create poem object with GPT-generated data
+      const poem = {
+        title: poemData.title,
+        author: poemData.author,
+        text: poemData.text,
+        dailyReason: poemData.reason
+      };
 
-      if (selectedPoem) {
-        // Add the reason to the poem
-        selectedPoem.dailyReason = selection.reason;
-        setCurrentPoem(selectedPoem);
-        
-        // Save selection
-        const poemIndex = hungarianPoems.indexOf(selectedPoem);
-        await AsyncStorage.setItem('poemIndex', poemIndex.toString());
-        await AsyncStorage.setItem('poemDate', getTodayDateString());
-        await AsyncStorage.setItem('poemReason', selection.reason);
-      } else {
-        // GPT selected a poem not in collection - retry with stronger prompt
-        console.warn('GPT selected invalid poem, retrying...');
-        throw new Error('Invalid poem selection, retrying');
-      }
+      // Set the current poem
+      setCurrentPoem(poem);
+      
+      // Save poem data to AsyncStorage
+      await AsyncStorage.setItem('poemData', JSON.stringify(poem));
+      await AsyncStorage.setItem('poemDate', getTodayDateString());
+      
+      console.log('✅ Poem selected:', poemData.title, 'by', poemData.author);
+      
     } catch (error) {
       console.error('Error selecting poem:', error);
       
-      // Retry once with simpler prompt (no random fallback!)
-      try {
-        console.log('Retrying poem selection...');
-        
-        const retryResponse = await axios.post(
-          'https://api.openai.com/v1/chat/completions',
-          {
-            model: 'gpt-4',
-            messages: [
-              {
-                role: 'system',
-                content: `Te egy magyar irodalmi szakértő vagy.
-                
-FELADAT: Válassz EGY verset a következő listából: ${availablePoems}
-
-⚠️ KRITIKUS: A "title" és "author" mezőket PONTOSAN a fenti listából másold! NE találj ki új címet!
-
-Válaszd a legmegfelelőbb verset a mai napra: ${dateString}
-
-JSON válasz:
-{"title": "pontos cím a listából", "author": "pontos név", "reason": "50-150 karakter indoklás"}`
-              },
-              {
-                role: 'user',
-                content: `Válassz egy verset a mai napra. JSON formátumban válaszolj.`
-              }
-            ],
-            temperature: 0.5,
-            max_tokens: 400
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        const retrySelection = JSON.parse(retryResponse.data.choices[0].message.content);
-        const retryPoem = hungarianPoems.find(
-          p => p.title === retrySelection.title && p.author === retrySelection.author
-        );
-
-        if (retryPoem) {
-          retryPoem.dailyReason = retrySelection.reason;
-          setCurrentPoem(retryPoem);
-          const poemIndex = hungarianPoems.indexOf(retryPoem);
-          await AsyncStorage.setItem('poemIndex', poemIndex.toString());
-          await AsyncStorage.setItem('poemDate', getTodayDateString());
-          await AsyncStorage.setItem('poemReason', retrySelection.reason);
-          console.log('Retry successful!');
-        } else {
-          throw new Error('Retry also failed - GPT not selecting from list');
-        }
-      } catch (retryError) {
-        console.error('Retry failed:', retryError);
-        // Show error to user - no random fallback!
-        Alert.alert(
-          'Hiba',
-          'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.',
-          [{ text: 'Újrapróbálás', onPress: () => selectNewPoem() }]
-        );
-      }
+      // Show error to user
+      Alert.alert(
+        'Hiba',
+        'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.',
+        [{ text: 'Újrapróbálás', onPress: () => selectNewPoem() }]
+      );
     }
   };
 
@@ -478,6 +432,15 @@ További információ: ${searchResults}
     }
   };
 
+  // Wait for fonts to load on Android
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
+
   if (!currentPoem) {
     return (
       <View style={styles.container}>
@@ -500,12 +463,18 @@ További információ: ${searchResults}
             <Text style={styles.reasonText}>💡 {currentPoem.dailyReason}</Text>
           </View>
         )}
-        <Text style={styles.poemText}>
-          "{currentPoem.text}"
-        </Text>
-        <Text style={styles.authorText}>
-          — {currentPoem.author}
-        </Text>
+        <ScrollView 
+          style={styles.poemScrollView}
+          showsVerticalScrollIndicator={true}
+          persistentScrollbar={true}
+        >
+          <Text style={styles.poemText}>
+            "{currentPoem.text}"
+          </Text>
+          <Text style={styles.authorText}>
+            — {currentPoem.author}
+          </Text>
+        </ScrollView>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -746,9 +715,11 @@ const styles = StyleSheet.create({
   },
   poemContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  poemScrollView: {
+    flex: 1,
   },
   reasonBadge: {
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
@@ -765,21 +736,28 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   poemText: {
-    fontSize: 40,
+    fontSize: Platform.OS === 'android' ? 24 : 40,
     color: '#000',
     textAlign: 'left',
     fontStyle: 'italic',
-    lineHeight: 56,
-    fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive',
+    lineHeight: Platform.OS === 'android' ? 36 : 56,
+    fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'DancingScript-Regular',
+    fontWeight: Platform.OS === 'android' ? '400' : 'normal',
     letterSpacing: 0.5,
-    marginBottom: 30,
+    marginBottom: 20,
     paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: 10,
   },
   authorText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'android' ? 16 : 18,
     color: '#000',
     fontStyle: 'italic',
     marginTop: 10,
+    marginBottom: 20,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: 20,
     fontFamily: 'serif',
   },
   buttonContainer: {
@@ -825,8 +803,9 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#F5DEB3',
+    justifyContent: 'space-between',
     paddingTop: Platform.OS === 'android' ? 50 : 60,
-    paddingBottom: Platform.OS === 'android' ? 50 : 20,
+    paddingBottom: Platform.OS === 'android' ? 20 : 20,
     paddingHorizontal: 20,
   },
   modalScroll: {
@@ -850,7 +829,7 @@ const styles = StyleSheet.create({
   },
   modalButtonRow: {
     marginTop: 10,
-    marginBottom: Platform.OS === 'android' ? 20 : 0,
+    marginBottom: 0,
   },
   closeButton: {
     backgroundColor: '#000',
