@@ -74,6 +74,8 @@ export default function App() {
       const storedDate = await AsyncStorage.getItem('poemDate');
       const storedPoemData = await AsyncStorage.getItem('poemData');
 
+      console.log('📅 Today:', todayDate, '| Stored:', storedDate, '| Has data:', !!storedPoemData);
+
       if (storedDate === todayDate && storedPoemData) {
         // Use stored poem for today
         console.log('📖 Loading cached poem for today');
@@ -81,7 +83,7 @@ export default function App() {
         setCurrentPoem(poem);
       } else {
         // Select new poem with GPT
-        console.log('🔄 Generating new poem for:', todayDate);
+        console.log('🔄 Generating new poem for:', todayDate, '(stored date was:', storedDate, ')');
         await selectNewPoem();
       }
     } catch (error) {
@@ -215,16 +217,24 @@ Válassz egy megfelelő klasszikus magyar verset és írd le a teljes szövegét
     } catch (error) {
       console.error('Error selecting poem:', error);
       
-      // Show error to user with rate limit handling
-      const errorMessage = error.response?.status === 429 
-        ? 'Túl sok kérés. Kérlek, várj néhány másodpercet és próbáld újra.'
-        : 'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.';
-      
-      Alert.alert(
-        'Hiba',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
+      // Keep using the old cached poem if generation fails
+      const storedPoemData = await AsyncStorage.getItem('poemData');
+      if (storedPoemData) {
+        console.log('⚠️ API failed, using cached poem as fallback');
+        const poem = JSON.parse(storedPoemData);
+        setCurrentPoem(poem);
+      } else {
+        // Show error to user with rate limit handling
+        const errorMessage = error.response?.status === 429 
+          ? 'Túl sok kérés. Kérlek, várj néhány másodpercet és próbáld újra.'
+          : 'Nem sikerült betölteni a mai verset. Kérlek, ellenőrizd az internetkapcsolatot és próbáld újra.';
+        
+        Alert.alert(
+          'Hiba',
+          errorMessage,
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setIsSelectingPoem(false);
     }
