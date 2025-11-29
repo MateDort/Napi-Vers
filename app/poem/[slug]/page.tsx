@@ -5,13 +5,21 @@ import PoemChat from "@/components/PoemChat";
 export default async function PoemPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }> | { slug: string };
 }) {
-  const poemData = await getPoemData(params.slug);
+  try {
+    const resolvedParams = await Promise.resolve(params);
+    const slug = resolvedParams.slug;
+    console.log(`[PoemPage] Loading page for slug: ${slug}`);
+    
+    const poemData = await getPoemData(slug);
 
-  if (!poemData) {
-    notFound();
-  }
+    if (!poemData) {
+      console.log(`[PoemPage] No poem data found for slug: ${slug}, showing 404`);
+      notFound();
+    }
+
+    console.log(`[PoemPage] Successfully loaded poem data for slug: ${slug}`);
 
   return (
     <main className="min-h-screen bg-beige-light p-4 md:p-8">
@@ -24,9 +32,9 @@ export default async function PoemPage({
         <div className="bg-white/30 rounded-lg p-6 md:p-8 mb-8 shadow-lg">
           <h2 className="text-2xl font-semibold mb-4">Elemzés</h2>
           <div className="prose prose-lg max-w-none">
-            {poemData.analysis.split("\n\n").map((para, idx) => (
+            {poemData.analysis && poemData.analysis.split("\n\n").filter(p => p.trim()).map((para, idx) => (
               <p key={idx} className="mb-4 text-gray-800">
-                {para}
+                {para.trim()}
               </p>
             ))}
           </div>
@@ -58,5 +66,9 @@ export default async function PoemPage({
       </div>
     </main>
   );
+  } catch (error) {
+    console.error("[PoemPage] Error loading poem page:", error);
+    notFound();
+  }
 }
 

@@ -4,7 +4,7 @@ export interface HungarianEvent {
   title: string;
   snippet: string;
   link?: string;
-  date?: string;
+  date?: string; // ISO date string if the event explicitly mentions today's date
 }
 
 export async function checkHungarianEvents(): Promise<HungarianEvent[]> {
@@ -49,11 +49,26 @@ export async function checkHungarianEvents(): Promise<HungarianEvent[]> {
         );
 
         if (response.data?.organic) {
-          const events = response.data.organic.map((item: any) => ({
-            title: item.title || "",
-            snippet: item.snippet || "",
-            link: item.link,
-          }));
+          const events = response.data.organic.map((item: any) => {
+            const eventText = `${item.title || ""} ${item.snippet || ""}`.toLowerCase();
+            // Check if the event mentions today's date
+            const monthDayPattern = new RegExp(`\\b${month}\\s*[./]\\s*${day}\\b|\\b${day}\\s*[./]\\s*${month}\\b`, 'i');
+            const monthNames = ["január", "február", "március", "április", "május", "június", 
+                                "július", "augusztus", "szeptember", "október", "november", "december"];
+            const monthName = monthNames[month - 1];
+            const hasDate = monthDayPattern.test(eventText) || 
+                           eventText.includes(`${day}. ${monthName}`) ||
+                           eventText.includes(`${monthName} ${day}`);
+            const mentionsToday = eventText.includes(' ma ') || eventText.includes(' mai ') || 
+                                 eventText.startsWith('ma ') || eventText.startsWith('mai ');
+            
+            return {
+              title: item.title || "",
+              snippet: item.snippet || "",
+              link: item.link,
+              date: hasDate || mentionsToday ? `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}` : undefined,
+            };
+          });
           allEvents.push(...events);
         }
       } catch (error) {
