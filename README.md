@@ -1,60 +1,64 @@
-# Napi Vers - Magyar Versek Applikáció
+# Vers App - Hungarian Poetry Daily
 
-📖 **Napi Vers** - Minden nap egy új magyar vers
+A Next.js web application that displays a daily Hungarian poem based on important events in Hungary, especially related to literature, poets, and authors.
 
-Fedezd fel a magyar költészet legszebb darabjait! Minden éjfélkor egy új, véletlenszerűen kiválasztott vers vár rád.
+## Features
 
-## ✨ Funkciók
+- **Daily Poem Selection**: Every midnight, the app checks for important Hungarian events using Serper API and selects an appropriate poem using GPT
+- **Author Information**: Detailed biography and fun facts about the poet
+- **Poem Analysis**: In-depth analysis and fun facts about the selected poem
+- **AI Chat**: Interactive chat to ask questions about the author or poem
+- **Beautiful UI**: Styled to match the classic poetry reading experience
 
-- 📅 Naponta új magyar vers (éjfélkor változik)
-- 👨‍🎨 Részletes életrajzok a költőkről (AI-generált, Serper kutatással)
-- 📜 A versek történetei és keletkezésük körülményei
-- 💬 Interaktív chat - kérdezz bármit a versekről és költőkről
-- 🎨 Gyönyörű, olvasható kézírásos betűtípus
-- 👵 Nagy betűméret (40px) az idősebb olvasóknak is
+## Setup
 
-## 🎭 Költők a gyűjteményben
-
-József Attila, Petőfi Sándor, Ady Endre, Arany János, Kosztolányi Dezső, Radnóti Miklós, Babits Mihály, Juhász Gyula, Tompa Mihály és még sokan mások!
-
-## 🛠️ Technológia
-
-- **React Native** + **Expo** (SDK 54)
-- **OpenAI GPT-4** - Költő életrajzok és vers háttérinformációk generálása
-- **Serper API** - További kutatás és kontextus
-- **AsyncStorage** - Napi vers tárolása
-
-## 🚀 Fejlesztés
-
+1. Install dependencies:
 ```bash
-# Függőségek telepítése
 npm install
-
-# Fejlesztői szerver indítása
-npm start
-
-# Expo Go-val tesztelés telefonon
-# Szkenneld be a QR kódot!
 ```
 
-## 📱 Build & Deploy
+2. Create a `.env.local` file with your API keys:
+```env
+SERPER_API_KEY=your_serper_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+CRON_SECRET=your_secret_token_here (optional)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
+3. Run the development server:
 ```bash
-# EAS Build konfiguráció
-eas build:configure
-
-# Android build
-eas build --platform android --profile preview
-
-# Éles verzió Google Play-hez
-eas build --platform android --profile production
+npm run dev
 ```
 
-## 📄 Licensz
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-MIT License
+## Cron Job Setup
 
-## 👨‍💻 Fejlesztő
+The app generates a new poem every midnight. You have two options:
 
-Készítette: MateDort
-GitHub: https://github.com/MateDort
+### Option 1: Internal Cron (Development)
+The cron job runs automatically when the server is running. For production, you may want to use an external service.
+
+### Option 2: External Cron Service (Recommended for Production)
+Use a service like Vercel Cron, EasyCron, or similar to call:
+```
+GET /api/cron/generate-poem
+Authorization: Bearer YOUR_CRON_SECRET
+```
+
+## API Keys
+
+- **Serper API**: Get your key from [serper.dev](https://serper.dev)
+- **OpenAI API**: Get your key from [platform.openai.com](https://platform.openai.com)
+
+## Project Structure
+
+- `app/` - Next.js app directory with pages and API routes
+- `lib/` - Core services (Serper, GPT, storage)
+- `components/` - React components (chat interfaces)
+- `data/` - Local storage for poems and author data
+
+## License
+
+MIT
+

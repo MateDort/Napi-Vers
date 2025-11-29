@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap');
+
+body {
+  background-color: #F5E6D3;
+  color: #2C1810;
+}
+
+.poem-text {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1.5rem;
+  line-height: 1.8;
+  color: #2C1810;
+  text-align: center;
+}
+
+.author-name {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1.2rem;
+  color: #2C1810;
+  text-align: right;
+  margin-top: 1rem;
+}
+
