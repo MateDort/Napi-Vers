@@ -21,6 +21,10 @@ export async function getTodayPoem(): Promise<PoemData> {
     return poemData;
   } catch (error) {
     console.error("Error getting poem:", error);
+    // If API keys are missing, provide a helpful error message
+    if (error instanceof Error && error.message.includes("API_KEY")) {
+      throw new Error("API keys are not configured. Please set GEMINI_API_KEY and SERPER_API_KEY in your environment variables.");
+    }
     throw error;
   }
 }

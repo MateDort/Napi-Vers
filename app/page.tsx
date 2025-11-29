@@ -6,7 +6,36 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function Home() {
-  const poemData = await getDailyPoem();
+  let poemData;
+  let error: string | null = null;
+
+  try {
+    poemData = await getDailyPoem();
+  } catch (err) {
+    console.error("Error loading poem:", err);
+    error = err instanceof Error ? err.message : "Failed to load poem";
+    // If API keys are missing, show a helpful message
+    if (error.includes("API_KEY") || error.includes("not set")) {
+      error = "API keys are not configured. Please set GEMINI_API_KEY and SERPER_API_KEY in your environment variables.";
+    }
+  }
+
+  // Show error message if poem failed to load
+  if (error || !poemData) {
+    return (
+      <main className="min-h-screen bg-beige-light p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white/30 rounded-lg p-8 md:p-12 shadow-lg text-center">
+            <h1 className="text-2xl font-bold mb-4 text-gray-800">Hiba történt</h1>
+            <p className="text-gray-700 mb-4">{error || "Nem sikerült betölteni a verset."}</p>
+            <p className="text-sm text-gray-600">
+              Kérlek ellenőrizd a környezeti változókat (GEMINI_API_KEY, SERPER_API_KEY) a Vercel projekt beállításaiban.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-beige-light p-4 md:p-8">
