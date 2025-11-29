@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import { getPoemData } from "@/lib/poemDataService";
 import PoemChat from "@/components/PoemChat";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PoemPage({
   params,
 }: {

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { chatAboutAuthor } from "@/lib/gptService";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
     const { authorName, question, conversationHistory } = await request.json();

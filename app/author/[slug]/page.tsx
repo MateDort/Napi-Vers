@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import { getAuthorData } from "@/lib/authorService";
 import AuthorChat from "@/components/AuthorChat";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function AuthorPage({
   params,
 }: {

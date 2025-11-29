@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getOrGenerateTodayPoem } from "@/lib/dailyPoemGenerator";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   // Check for authorization header (only required in production with CRON_SECRET set)
   const authHeader = request.headers.get("authorization");

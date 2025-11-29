@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getTodayPoem } from "@/lib/apiCache";
 import { ensureAuthorAndPoemInfo } from "@/lib/dailyPoemGenerator";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST() {
   try {
     // Get today's poem
