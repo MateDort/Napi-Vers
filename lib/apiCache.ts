@@ -1,4 +1,5 @@
 import { PoemData } from "./poemService";
+import { getOrGenerateTodayPoem } from "./dailyPoemGenerator";
 
 let cachedPoem: PoemData | null = null;
 let cachedDate: string | null = null;
@@ -11,23 +12,15 @@ export async function getTodayPoem(): Promise<PoemData> {
     return cachedPoem;
   }
 
-  // Fetch from API
+  // Call the function directly instead of making an HTTP request
+  // This works both at build time and runtime
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/poem/today`,
-      { cache: "no-store" }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch poem");
-    }
-
-    const poemData = await response.json();
+    const poemData = await getOrGenerateTodayPoem();
     cachedPoem = poemData;
     cachedDate = today;
     return poemData;
   } catch (error) {
-    console.error("Error fetching poem:", error);
+    console.error("Error getting poem:", error);
     throw error;
   }
 }

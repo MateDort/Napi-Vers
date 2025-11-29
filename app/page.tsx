@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { getDailyPoem } from "@/lib/poemService";
 
+// Force dynamic rendering since we need to fetch the daily poem
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function Home() {
   const poemData = await getDailyPoem();
 
